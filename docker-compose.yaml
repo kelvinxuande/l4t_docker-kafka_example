@@ -5,53 +5,58 @@
 
 version: "3.4"
 services:
-    kafka-zookeeper:
-        container_name: kafka-zookeeper
-        image: arm64v8/zookeeper
-        hostname: kafka-zookeeper
+
+    kafka_zookeeper:
+        container_name: kafka_zookeeper
+        # official docker Apache Zookeeper image
+        image: zookeeper
         networks:
-            - kafka-network
+            - kafka_network
+        hostname: kafka_zookeeper
         # volumes:
-        #     - /mnt/shared/kafka-zookeeper:/data
+        #     - /mnt/shared/kafka_zookeeper:/data
         # can be reach at 2181 by default
         environment:
             ZOOKEEPER_CLIENT_PORT: 2181
-        # disable logging for this container
-        logging:
-            driver: none 
-    kafka-broker:
-        container_name: kafka-broker
-        image: zeelos/cp-kafka:5.2.2-arm64v8
-        hostname: kafka-broker
+        # # disable logging for this container
+        # logging:
+        #     driver: none
+
+    kafka_broker:
+        container_name: kafka_broker
+        # 3rd party client, arm64v8 client not officially supported
+        image: fogsyio/kafka:2.2.0
+        depends_on:
+            - kafka_zookeeper
+        networks:
+            - kafka_network
+        hostname: kafka_broker
         # for inbound traffic from localhost on docker machine if any
         ports: 
             - "19092:19092"
-        depends_on:
-            - kafka-zookeeper
-        environment:
-            KAFKA_ZOOKEEPER_CONNECT: kafka-zookeeper:2181
-            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:9092,CONNECTIONS_FROM_HOST://localhost:19092
-            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
-            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-            KAFKA_CREATE_TOPICS: "topic_test:1:1"
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-        networks:
-            - kafka-network
-        # disable logging for this container
-        logging:
-            driver: none 
         # volumes:
-        #     - /mnt/shared/kafka-broker/:/var/lib/kafka-broker/data
+        #     - /mnt/shared/kafka_broker/:/var/lib/kafka_broker/data
+        environment:
+            KAFKA_ADVERTISED_HOST_NAME: kafka_broker
+            KAFKA_ZOOKEEPER_CONNECT: kafka_zookeeper:2181
+            KAFKA_LISTENERS: PLAINTEXT://kafka_broker:9092,CONNECTIONS_FROM_HOST://localhost:19092
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_broker:9092,CONNECTIONS_FROM_HOST://localhost:19092
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        # # disable logging for this container
+        # logging:
+        #     driver: none
 
     producer:
         container_name: producer
         image: producer
         depends_on: 
-            - kafka-zookeeper
-            - kafka-broker
+            - kafka_zookeeper
+            - kafka_broker
         networks: 
-            - kafka-network
+            - kafka_network
         build:
             context: producer/
             dockerfile: Dockerfile
@@ -61,17 +66,17 @@ services:
         container_name: consumer
         image: consumer
         depends_on: 
-            - kafka-zookeeper
-            - kafka-broker
+            - kafka_zookeeper
+            - kafka_broker
             - producer
         networks: 
-            - kafka-network
+            - kafka_network
         build:
             context: consumer/
             dockerfile: Dockerfile
         command: ["python3", "consumer.py"]
 
 networks:
-    kafka-network:
-        name: kafka-network
+    kafka_network:
+        name: kafka_network
         driver: bridge

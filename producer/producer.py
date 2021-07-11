@@ -8,7 +8,6 @@ from urllib.request import urlopen
 
 def _setup_logger():
     ### see streamReceiver for complete example on comprehensive logging
-
     # get logger
     streamLogger = logging.getLogger(__name__)
     # set level
@@ -19,7 +18,6 @@ def _setup_logger():
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
     streamLogger.addHandler(stream_handler)
-
     return streamLogger
 
 streamLogger = _setup_logger()
@@ -30,13 +28,12 @@ successfully_connected = False
 while not successfully_connected:
     try:
         producer = KafkaProducer(
-            bootstrap_servers='kafka-broker:9092',
+            bootstrap_servers='kafka_broker:9092',
             # bootstrap_servers='localhost:19092',
             value_serializer=lambda x: dumps(x).encode('utf-8')
         )
         successfully_connected = True
     except:
-        # print("waiting for successful connection")
         streamLogger.info("waiting for successful connection")
         time.sleep(check_interval)
 
@@ -46,9 +43,11 @@ while True:
     res = urlopen('http://just-the-time.appspot.com/')
     result = res.read().strip().decode('utf-8')
 
-    data = {'time-from-internet': result}
-    producer.send('test', value=data)
-    # print(data)
+    data = { 
+        'idx': idx, 
+        'time-from-internet': result 
+        }
+    producer.send('timed_id', value=data)
     streamLogger.info(data)
     time.sleep(1)
     idx += 1
