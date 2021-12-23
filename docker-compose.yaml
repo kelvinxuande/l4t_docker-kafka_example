@@ -8,9 +8,7 @@ services:
         container_name: zookeeper
         # official docker Apache Zookeeper image
         image: cfei/zookeeper:latest-multiarch
-        networks:
-            - kafka_network
-        hostname: zookeeper
+        network_mode: host
         environment: 
             ZOO_ID: 1  
             ZOO_PORT: 2181
@@ -23,14 +21,12 @@ services:
         image: cfei/kafka:latest-multiarch
         depends_on:
             - zookeeper
-        networks:
-            - kafka_network
-        hostname: kafka
+        network_mode: host
         environment: 
             KAFKA_BROKER_ID: 1
-            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-            KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://kafka:9093
-            KAFKA_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://kafka:9093
+            KAFKA_ZOOKEEPER_CONNECT: localhost:2181
+            KAFKA_ADVERTISED_LISTENERS: INTERNAL://localhost:9093,EXTERNAL://localhost:9092
+            KAFKA_LISTENERS: INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
             KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
         restart: always #no, always, on-failure, unless-stopped
 
@@ -40,8 +36,7 @@ services:
         depends_on: 
             - zookeeper
             - kafka
-        networks: 
-            - kafka_network
+        network_mode: host
         build:
             context: producer/
             dockerfile: Dockerfile
@@ -54,14 +49,8 @@ services:
             - zookeeper
             - kafka
             - producer
-        networks: 
-            - kafka_network
+        network_mode: host
         build:
             context: consumer/
             dockerfile: Dockerfile
         command: ["python3", "consumer.py"]
-
-networks:
-    kafka_network:
-        name: kafka_network
-        driver: bridge

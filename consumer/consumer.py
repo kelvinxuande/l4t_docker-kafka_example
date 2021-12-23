@@ -27,7 +27,8 @@ while not successfully_connected:
         consumer = KafkaConsumer(
                     'timed_id',
                     # whether to connect from connected docker container or dockerhost (localhost)
-                    bootstrap_servers='kafka:9093',
+                    # bootstrap_servers='kafka:9093',
+                    bootstrap_servers='localhost:9092',
                     # whether to start receving from the earliest message or from the latest
                     auto_offset_reset='earliest',
                     # auto_offset_reset='latest',

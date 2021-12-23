@@ -29,7 +29,8 @@ successfully_connected = False
 while not successfully_connected:
     try:
         producer = KafkaProducer(
-            bootstrap_servers='kafka:9093',
+            # bootstrap_servers='kafka:9093',
+            bootstrap_servers='localhost:9092',
             value_serializer=lambda x: dumps(x).encode('utf-8')
         )
         successfully_connected = True

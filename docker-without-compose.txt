@@ -1,12 +1,9 @@
-docker network create -d bridge kafka_network
+docker run -d --rm --name zookeeper --net host -e ZOO_ID=1 -e ZOO_PORT=2181 -e ZOO_TICK_TIME=2000 -e ZOO_MAX_SESSION_TIMEOUT=60000 cfei/zookeeper:latest-multiarch
 
-docker run -d --rm --name zookeeper --net kafka_network --hostname zookeeper -e ZOO_ID=1 -e ZOO_PORT=2181 -e ZOO_TICK_TIME=2000 -e ZOO_MAX_SESSION_TIMEOUT=60000 cfei/zookeeper:latest-multiarch
-
-docker run -d --rm --name kafka --net kafka_network --hostname kafka -e KAFKA_BROKER_ID=1 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://kafka:9093 -e KAFKA_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://kafka:9093 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 cfei/kafka:latest-multiarch
-#docker run -it --rm --name kafka --net kafka_network --hostname kafka -e KAFKA_BROKER_ID=1 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://kafka:9093 -e KAFKA_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://kafka:9093 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 cfei/kafka:latest-multiarch
+docker run -d --rm --name kafka --net host -e KAFKA_BROKER_ID=1 -e KAFKA_ZOOKEEPER_CONNECT=localhost:2181 -e KAFKA_ADVERTISED_LISTENERS=INTERNAL://localhost:9093,EXTERNAL://localhost:9092 -e KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 cfei/kafka:latest-multiarch
 
 docker build -t test-kafka-producer .
-docker run -it --rm --net kafka_network test-kafka-producer python3 producer.py
+docker run -it --rm --net host test-kafka-producer python3 producer.py
 
 docker build -t test-kafka-consumer .
-docker run -it --rm --net kafka_network test-kafka-consumer python3 consumer.py
+docker run -it --rm --net host test-kafka-consumer python3 consumer.py
