@@ -1,7 +1,7 @@
 # create from base image
 FROM python:3.6.9
 
-RUN pip install kafka-python
+RUN pip install kafka-python ntplib
 
 # copy in scripts
 COPY producer.py /producer.py

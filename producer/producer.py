@@ -3,8 +3,9 @@ from json import dumps
 from kafka import KafkaProducer
 import logging
 
-# sanity check internet connection from within container
-from urllib.request import urlopen
+import ntplib
+from time import ctime
+c = ntplib.NTPClient()
 
 def _setup_logger():
     ### see streamReceiver for complete example on comprehensive logging
@@ -28,24 +29,24 @@ successfully_connected = False
 while not successfully_connected:
     try:
         producer = KafkaProducer(
-            bootstrap_servers='kafka_broker:9092',
-            # bootstrap_servers='localhost:19092',
+            bootstrap_servers='kafka:9093',
             value_serializer=lambda x: dumps(x).encode('utf-8')
         )
         successfully_connected = True
-    except:
+        print("successfully connected to bootstrap_servers!")
+    except Exception as e:
+        print(e)
         streamLogger.info("waiting for successful connection")
         time.sleep(check_interval)
 
 idx = 0
 while True:
     # sanity check internet connection from within container
-    res = urlopen('http://just-the-time.appspot.com/')
-    result = res.read().strip().decode('utf-8')
+    response = c.request('pool.ntp.org')
 
     data = { 
         'idx': idx, 
-        'time-from-internet': result 
+        'time-from-internet': str(ctime(response.tx_time)) 
         }
     producer.send('timed_id', value=data)
     streamLogger.info(data)

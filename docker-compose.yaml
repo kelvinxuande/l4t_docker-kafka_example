@@ -1,60 +1,45 @@
-# schema reference: 
-    # https://github.com/jahnestacado/kafka-zookeeper-schema-registry-stack-arm64v8/blob/master/docker-stack-arm64v8.yml
-    # https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
-    # https://github.com/rmoff/kafka-listeners/tree/master/python
+#Docker version to use
+version: '3'
 
-version: "3.4"
+#Container services
 services:
 
-    kafka_zookeeper:
-        container_name: kafka_zookeeper
+    zookeeper:
+        container_name: zookeeper
         # official docker Apache Zookeeper image
-        image: zookeeper
+        image: cfei/zookeeper:latest-multiarch
         networks:
             - kafka_network
-        hostname: kafka_zookeeper
-        # volumes:
-        #     - /mnt/shared/kafka_zookeeper:/data
-        # can be reach at 2181 by default
-        environment:
-            ZOOKEEPER_CLIENT_PORT: 2181
-        # # disable logging for this container
-        # logging:
-        #     driver: none
+        hostname: zookeeper
+        environment: 
+            ZOO_ID: 1  
+            ZOO_PORT: 2181
+            ZOO_TICK_TIME: 2000
+            ZOO_MAX_SESSION_TIMEOUT: 60000
+        restart: always #no, always, on-failure, unless-stopped
 
-    kafka_broker:
-        container_name: kafka_broker
-        # 3rd party client, arm64v8 client not officially supported
-        image: fogsyio/kafka:2.2.0
+    kafka:
+        container_name: kafka
+        image: cfei/kafka:latest-multiarch
         depends_on:
-            - kafka_zookeeper
+            - zookeeper
         networks:
             - kafka_network
-        hostname: kafka_broker
-        # for inbound traffic from localhost on docker machine if any
-        ports: 
-            - "19092:19092"
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-        # volumes:
-        #     - /mnt/shared/kafka_broker/:/var/lib/kafka_broker/data
-        environment:
-            KAFKA_ADVERTISED_HOST_NAME: kafka_broker
-            KAFKA_ZOOKEEPER_CONNECT: kafka_zookeeper:2181
-            KAFKA_LISTENERS: PLAINTEXT://kafka_broker:9092,CONNECTIONS_FROM_HOST://localhost:19092
-            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_broker:9092,CONNECTIONS_FROM_HOST://localhost:19092
-            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+        hostname: kafka
+        environment: 
+            KAFKA_BROKER_ID: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://kafka:9093
+            KAFKA_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://kafka:9093
             KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-        # # disable logging for this container
-        # logging:
-        #     driver: none
+        restart: always #no, always, on-failure, unless-stopped
 
     producer:
         container_name: producer
         image: producer
         depends_on: 
-            - kafka_zookeeper
-            - kafka_broker
+            - zookeeper
+            - kafka
         networks: 
             - kafka_network
         build:
@@ -66,8 +51,8 @@ services:
         container_name: consumer
         image: consumer
         depends_on: 
-            - kafka_zookeeper
-            - kafka_broker
+            - zookeeper
+            - kafka
             - producer
         networks: 
             - kafka_network
